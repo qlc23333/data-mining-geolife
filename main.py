@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from utils import medianfilter,calculate_distance,calculate_time,calculate_speeds,get_staypoint,draw_on_map
+
 plt.rcParams['font.sans-serif'] = ['SimSun']
 plt.rcParams['axes.unicode_minus'] = False
 # 问题一
 # 读取用户000的轨迹数据
-file_path = r'D:\anaconda\jupyter_flie\认知计算\实验一\Geolife Trajectories 1.3\Data\000\Trajectory\20081026134407.plt'  # 替换为具体路径
+file_path = r'D:\anaconda\jupyter_flie\认知计算\实验一\Geolife Trajectories 1.3\Data\000\Trajectory\20081023025304.plt'  # 替换为具体路径
 columns = ['维度', '经度', 'Zero', '海拔', '天数', '日期', '时间']
 data = pd.read_csv(file_path, skiprows=6, names=columns)
 # 绘制轨迹
@@ -18,14 +20,6 @@ plt.grid(True)
 plt.show()
 
 # 问题二
-def medianfilter(X, window_size):
-    n = len(X)
-    X = np.append(np.zeros(int(window_size / 2)), X)
-    X = np.append(X, np.zeros(int(window_size / 2)))
-    new_X = np.zeros(n)
-    for i in range(n):
-        new_X[i] = np.median(X[i:i + window_size])
-    return new_X
 window_size = 7
 data['维度'] = medianfilter(data['维度'].values,window_size)
 data['经度'] = medianfilter(data['经度'].values,window_size)
@@ -39,42 +33,11 @@ plt.ylabel('经度')
 plt.grid(True)
 plt.show()
 import folium
-def draw_on_map(data, polyline=True, marker=False):
-    # 创建一个地图对象，初始中心设置为轨迹数据的第一个点
-    m = folium.Map(location=[data['维度'].mean(), data['经度'].mean()], zoom_start=12)
-    # 将轨迹数据添加到地图中，用Polyline绘制轨迹线
-    if polyline == True:
-        folium.PolyLine(
-            locations=list(zip(data['维度'], data['经度'])),  # 经度和纬度
-            color="blue",  # 轨迹线的颜色
-            weight=6,  # 轨迹线的宽度
-        ).add_to(m)
-    # 如果想在轨迹点添加标记，可以用for循环逐个添加
-    if marker == True:
-        for i in range(len(data)):
-            folium.Marker(
-                location=[data.iloc[i]['维度'], data.iloc[i]['经度']],
-                # popup=f"速度: {data.iloc[i]['速度']} km/h"  # 可以在标记中显示速度信息
-            ).add_to(m)
 
-    # 将地图保存成HTML文件
-    return m
 m = draw_on_map(data)
 m.save("trajectory_map.html")
 
 # 问题三
-from datetime import datetime
-from geopy import distance
-def calculate_distance(piont1, point2):
-    straight_distance = distance.distance(piont1,point2).miles * 1.60934
-    return straight_distance
-def calculate_time(t1, t2):
-    t1 = datetime.strptime(t1, '%H:%M:%S')
-    t2 = datetime.strptime(t2, '%H:%M:%S')
-    return (t2 - t1).total_seconds() / 3600.0
-def calculate_speeds(d,t):
-    return d / t
-# 计算速度
 # 使用距离前一个点的距离和时间差计算速度
 for i in range(1, len(data)):
     d = calculate_distance((data.iloc[i-1]['维度'], data.iloc[i-1]['经度']),
